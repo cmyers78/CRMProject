@@ -1,7 +1,7 @@
 package main
 
 import (
-	"CRMBackendProject/CRMServer/handlers"
+	"CRMBackendProject/internal/handlers"
 	"fmt"
 	"net/http"
 

@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"CRMBackendProject/Models"
+	"CRMBackendProject/models"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -42,7 +42,7 @@ func CreateNewCustomer(writer http.ResponseWriter, req *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
 
 	// 2. keep track of new entry so that it can be added to dictionary map
-	var newEntry map[string]Models.Customer
+	var newEntry map[string]models.Customer
 
 	// 3. Read the request
 	reqBody, _ := io.ReadAll(req.Body)
@@ -89,7 +89,7 @@ func UpdateCustomer(writer http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 	id := params["id"]
 
-	var newEntry map[string]Models.Customer
+	var newEntry map[string]models.Customer
 	if _, ok := database[id]; ok {
 		reqBody, _ := io.ReadAll(req.Body)
 		json.Unmarshal(reqBody, &newEntry)
@@ -103,11 +103,11 @@ func UpdateCustomer(writer http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func seedCustomerDatabase() map[string]Models.Customer {
-	customers := make(map[string]Models.Customer)
+func seedCustomerDatabase() map[string]models.Customer {
+	customers := make(map[string]models.Customer)
 
 	custID := uuid.New().String()
-	customers[custID] = Models.Customer{
+	customers[custID] = models.Customer{
 		ID:        custID,
 		Name:      "Chris Myers",
 		Role:      "Engineer",
@@ -117,7 +117,7 @@ func seedCustomerDatabase() map[string]Models.Customer {
 	}
 
 	custID2 := uuid.New().String()
-	customers[custID2] = Models.Customer{
+	customers[custID2] = models.Customer{
 		ID:        custID2,
 		Name:      "Neville Myers",
 		Role:      "Chief Dog Officer",
