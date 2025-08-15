@@ -1,28 +1,28 @@
-package crmServer
+package handlers
 
 import (
 	"CRMBackendProject/Models"
 	"encoding/json"
-	"fmt"
-	"github.com/google/uuid"
-	"github.com/gorilla/mux"
 	"io"
 	"net/http"
+
+	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 )
 
 var database = seedCustomerDatabase()
 
-func showHomePage(writer http.ResponseWriter, req *http.Request) {
+func ShowHomePage(writer http.ResponseWriter, req *http.Request) {
 	http.ServeFile(writer, req, "./static/static.html")
 }
 
-func getAllCustomers(writer http.ResponseWriter, req *http.Request) {
+func GetAllCustomers(writer http.ResponseWriter, req *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusOK)
 	json.NewEncoder(writer).Encode(database)
 }
 
-func getSingleCustomer(writer http.ResponseWriter, req *http.Request) {
+func GetSingleCustomer(writer http.ResponseWriter, req *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(req)
 	id := params["id"]
@@ -37,7 +37,7 @@ func getSingleCustomer(writer http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func createNewCustomer(writer http.ResponseWriter, req *http.Request) {
+func CreateNewCustomer(writer http.ResponseWriter, req *http.Request) {
 	// 1. set content-type to JSON
 	writer.Header().Set("Content-Type", "application/json")
 
@@ -66,7 +66,7 @@ func createNewCustomer(writer http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(writer).Encode(database)
 }
 
-func deleteCustomer(writer http.ResponseWriter, req *http.Request) {
+func DeleteCustomer(writer http.ResponseWriter, req *http.Request) {
 	// 1. Set Content Type
 	writer.Header().Set("Content-Type", "application/json")
 	// 2. Grab the member id from the url params
@@ -84,7 +84,7 @@ func deleteCustomer(writer http.ResponseWriter, req *http.Request) {
 }
 
 // TODO: - update a customer by id
-func updateCustomer(writer http.ResponseWriter, req *http.Request) {
+func UpdateCustomer(writer http.ResponseWriter, req *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(req)
 	id := params["id"]
@@ -101,18 +101,6 @@ func updateCustomer(writer http.ResponseWriter, req *http.Request) {
 		writer.WriteHeader(http.StatusConflict)
 		json.NewEncoder(writer).Encode(database)
 	}
-}
-
-func StartServer() {
-	router := mux.NewRouter()
-	router.HandleFunc("/", showHomePage)
-	router.HandleFunc("/customers", getAllCustomers).Methods("GET")
-	router.HandleFunc("/customers/{id}", getSingleCustomer).Methods("GET")
-	router.HandleFunc("/customers", createNewCustomer).Methods("POST")
-	router.HandleFunc("/customers/{id}", deleteCustomer).Methods("DELETE")
-	router.HandleFunc("/customers/{id}", updateCustomer).Methods("PUT")
-	fmt.Println("Server starting on port 3000")
-	http.ListenAndServe(":3000", router)
 }
 
 func seedCustomerDatabase() map[string]Models.Customer {
