@@ -27,6 +27,7 @@ func GetSingleCustomer(writer http.ResponseWriter, req *http.Request) {
 	id := params["id"]
 
 	customer, err := customer.Get(id)
+
 	if err != nil {
 		writer.WriteHeader(http.StatusNotFound)
 		json.NewEncoder(writer).Encode(customer)

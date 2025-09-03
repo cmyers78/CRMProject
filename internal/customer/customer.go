@@ -10,7 +10,7 @@ var database = seedCustomerDatabase()
 
 func GetAll() map[string]models.Customer {
 	customers := database
-	return customers // works for now, but need to be able to return an empty map
+	return customers
 }
 
 func Get(id string) (models.Customer, error) {
@@ -18,7 +18,6 @@ func Get(id string) (models.Customer, error) {
 	if !ok {
 		return models.Customer{}, fmt.Errorf("%s not found", id)
 	}
-
 	return customer, nil
 }
 
