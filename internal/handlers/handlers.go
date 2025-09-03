@@ -5,6 +5,8 @@ import (
 	"CRMBackendProject/internal/customer"
 	"encoding/json"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/gorilla/mux"
 )
@@ -12,7 +14,13 @@ import (
 // NOTE: - Handlers file should show handlers first
 
 func ShowHomePage(writer http.ResponseWriter, req *http.Request) {
-	http.ServeFile(writer, req, "./static/static.html")
+	path, err := os.Executable()
+	if err != nil {
+		http.Error(writer, "Unable to get executable path", http.StatusInternalServerError)
+		return
+	}
+	staticPath := filepath.Join(filepath.Dir(path), "static/static.html")
+	http.ServeFile(writer, req, staticPath)
 }
 
 func GetAllCustomers(writer http.ResponseWriter, req *http.Request) {
