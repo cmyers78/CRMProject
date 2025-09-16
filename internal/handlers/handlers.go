@@ -3,7 +3,9 @@ package handlers
 // Business Logic and Handler currently
 import (
 	"CRMBackendProject/internal/customer"
+	"CRMBackendProject/models"
 	"encoding/json"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -23,14 +25,14 @@ func ShowHomePage(writer http.ResponseWriter, req *http.Request) {
 	http.ServeFile(writer, req, staticPath)
 }
 
-func GetAllCustomers(writer http.ResponseWriter, req *http.Request) {
+func GetAllCustomers(writer http.ResponseWriter, _ *http.Request) {
 	customers := customer.GetAll()
 	writeResponse(writer, customers, http.StatusOK)
 }
 
 func GetSingleCustomer(writer http.ResponseWriter, req *http.Request) {
 	// Handler logic
-	id := extractID(req)
+	id := extract("id", req)
 
 	customer, err := customer.Get(id)
 
@@ -48,9 +50,9 @@ func writeResponse(writer http.ResponseWriter, data any, statusCode int) {
 	json.NewEncoder(writer).Encode(data)
 }
 
-func extractID(req *http.Request) string {
+func extract(key string, req *http.Request) string {
 	params := mux.Vars(req)
-	id := params["id"]
+	id := params[key]
 	return id
 }
 
@@ -83,7 +85,7 @@ func extractID(req *http.Request) string {
 //		json.NewEncoder(writer).Encode(database)
 //	}
 func DeleteCustomer(writer http.ResponseWriter, req *http.Request) {
-	id, database := extractID(req), customer.GetAll()
+	id, database := extract("id", req), customer.GetAll()
 	if _, ok := database[id]; ok {
 		delete(database, id)
 		writeResponse(writer, database, http.StatusNoContent)
@@ -92,24 +94,30 @@ func DeleteCustomer(writer http.ResponseWriter, req *http.Request) {
 	writeResponse(writer, database, http.StatusNotFound)
 }
 
-//
-//// TODO: - update a customer by id
-//func UpdateCustomer(writer http.ResponseWriter, req *http.Request) {
-//	writer.Header().Set("Content-Type", "application/json")
-//	params := mux.Vars(req)
-//	id := params["id"]
-//
-//	var newEntry models.Customer
-//	if _, ok := database[id]; ok {
-//		reqBody, _ := io.ReadAll(req.Body)
-//		json.Unmarshal(reqBody, &newEntry)
+func UpdateCustomer(writer http.ResponseWriter, req *http.Request) {
+	id, database := extract("id", req), customer.GetAll()
+	// this works fine now, but i assume will have to be pulled from a db later and will need error handling
+	var newEntry models.Customer
 
-//		database[newEntry.id] = newEntry
-//		database[newEntry.id].Name = newEntry.Name
-//		writer.WriteHeader(http.StatusAccepted)
-//		json.NewEncoder(writer).Encode(database)
-//	} else {
-//		writer.WriteHeader(http.StatusConflict)
-//		json.NewEncoder(writer).Encode(database)
-//	}
-//}
+	// read the request body and handle error
+	// unmarshal the request body into newEntry and handle error
+	// check if the id exists in the database
+	// if it exists, update the entry and respond with status accepted
+	// if it doesn't exist, respond with status not found
+	if _, ok := database[id]; ok {
+		reqBody, _ := io.ReadAll(req.Body)
+		err := json.Unmarshal(reqBody, &newEntry)
+		if err != nil {
+			writeResponse(writer, newEntry, http.StatusUnprocessableEntity)
+			return
+		}
+		database[newEntry.ID] = newEntry
+		writeResponse(writer, database, http.StatusAccepted)
+		return
+	}
+	writeResponse(writer, database, http.StatusNotFound)
+}
+
+// QUESTIONS:
+// 1. Why use unmarshal instead of decode?
+// 2. How do I handle the unmarshal error correctly?--nesting seems wrong
