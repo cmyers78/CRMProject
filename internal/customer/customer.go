@@ -10,6 +10,15 @@ import (
 
 var customerdb = seedCustomerDatabase()
 
+// Go
+// Implementing a thread-safe map to store customer data
+// Notes:
+// - SafeMap struct contains a mutex and a map to store customer data
+// - CRUD operations are defined as methods on the SafeMap struct
+// - Mutex is used to ensure thread safety during read and write operations
+// - getAll, get, set, and delete methods provide basic CRUD functionality
+// - GetDB function returns a pointer to the SafeMap instance
+
 type SafeMap struct {
 	mu       sync.RWMutex
 	database map[string]models.Customer

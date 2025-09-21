@@ -18,11 +18,13 @@ var myVar string            //emptyString (0'th value)
 var myMap map[string]string // nil
 var myMap2 map[int]int      // nil
 
-// TODO: - What here needs to be validate?  i.e name can't be empty.  what can and cannot be empty?
-
 func (c Customer) Validate() error {
 	if strings.TrimSpace(c.Name) == "" {
 		return errors.New("Name is required and cannot be empty")
+	}
+
+	if strings.TrimSpace(c.Email) == "" && strings.TrimSpace(c.Phone) == "" {
+		return errors.New("Email or Phone Number is required and cannot be empty")
 	}
 	return nil
 }
