@@ -18,9 +18,9 @@ Using Postman or RapidApi you can make various calls.  Endpoints are as follows:
 ### POST `/customers` Will take a JSON body and add a new customer
 `Adding a customer example`
 ```json
-{
-"987CMY": {"ID":"987CMY","Name":"Hank Hill","Role":"Assistant Manager - Propane & Propane accessories","Email":"hank.hill@nosuchco.com","Phone":"765-678-2342","Contacted":true}
-}
+
+{"Name":"Hank Hill","Role":"Assistant Manager - Propane & Propane accessories","Email":"hank.hill@nosuchco.com","Phone":"765-678-2342","Contacted":true}
+
 ```
 ### DELETE `/customers/{id}` Will delete a specific customer by their unique ID
 ### PUT `/customers/{id}` Will update information for a specific customer by their unique ID

@@ -5,7 +5,7 @@ import (
 	"CRMBackendProject/internal/customer"
 	"CRMBackendProject/models"
 	"encoding/json"
-	"io"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,6 +14,9 @@ import (
 )
 
 // NOTE: - Handlers file should show handlers first
+var (
+	database = customer.GetDB()
+)
 
 func ShowHomePage(writer http.ResponseWriter, req *http.Request) {
 	path, err := os.Executable()
@@ -25,99 +28,111 @@ func ShowHomePage(writer http.ResponseWriter, req *http.Request) {
 	http.ServeFile(writer, req, staticPath)
 }
 
-func GetAllCustomers(writer http.ResponseWriter, _ *http.Request) {
+func RetrieveAllCustomers(writer http.ResponseWriter, _ *http.Request) {
 	customers := customer.GetAll()
 	writeResponse(writer, customers, http.StatusOK)
 }
 
-func GetSingleCustomer(writer http.ResponseWriter, req *http.Request) {
+func RetrieveSingleCustomer(writer http.ResponseWriter, req *http.Request) {
 	// Handler logic
-	id := extract("id", req)
+	id := extractOne("id", req)
 
-	customer, err := customer.Get(id)
-
+	cst, err := customer.Get(id)
 	if err != nil {
-		writeResponse(writer, customer, http.StatusNotFound)
+		writeResponse(writer, cst, http.StatusNotFound)
 		return
 	}
-	writeResponse(writer, customer, http.StatusOK)
+	writeResponse(writer, cst, http.StatusOK)
+}
+
+func CreateNewCustomer(writer http.ResponseWriter, req *http.Request) {
+	// 1. set content-type to JSON
+	writer.Header().Set("Content-Type", "application/json")
+
+	// 2. keep track of new entry so that it can be added to dictionary map
+	var newEntry models.Customer
+
+	err := json.NewDecoder(req.Body).Decode(&newEntry)
+	if err != nil {
+		writeResponse(writer, newEntry, http.StatusUnprocessableEntity)
+		return
+	}
+	// 3. Validate new entry (i.e. name and role cannot be empty)
+	validationError := newEntry.Validate()
+	if validationError != nil {
+		fmt.Printf("Erorr: %s", validationError.Error())
+		writeResponse(writer, newEntry, http.StatusBadRequest)
+		return
+	}
+	// 5. Add new entry to dictionary map if it doesn't already exist
+	key, err := customer.Insert(newEntry)
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	newEntry.ID = key
+
+	// 6. Return updated customer record
+	writer.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(writer).Encode(newEntry)
+}
+
+func DeleteCustomer(writer http.ResponseWriter, req *http.Request) {
+	id := extractOne("id", req)
+	// NOTE: Validation of id
+	if id == "" {
+		writeResponse(writer, id, http.StatusBadRequest)
+		return
+	}
+	cst, err := customer.Get(id)
+	if err != nil {
+		writeResponse(writer, cst, http.StatusNotFound)
+		return
+	}
+
+	_ = customer.Delete(cst.ID)
+	writeResponse(writer, database, http.StatusOK)
+}
+
+func UpdateCustomer(writer http.ResponseWriter, req *http.Request) {
+	// this works fine now, but I assume will have to be pulled from a db later and will need error handling
+	var newEntry models.Customer
+	err := json.NewDecoder(req.Body).Decode(&newEntry)
+	if err != nil {
+		writeResponse(writer, newEntry, http.StatusUnprocessableEntity)
+		return
+	}
+	// NOTE: Validation of id
+	if newEntry.ID == "" {
+		writeResponse(writer, newEntry, http.StatusBadRequest)
+		return
+	}
+	_, err = customer.Get(newEntry.ID)
+	if err != nil {
+		writeResponse(writer, newEntry.ID, http.StatusNotFound)
+		return
+	}
+	err = customer.Update(newEntry)
+	if err != nil {
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	writeResponse(writer, database, http.StatusAccepted)
 }
 
 // NOTE: - Keep helpers at the bottom of the page
 func writeResponse(writer http.ResponseWriter, data any, statusCode int) {
 	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(statusCode)
-	json.NewEncoder(writer).Encode(data)
+	_ = json.NewEncoder(writer).Encode(data)
 }
 
-func extract(key string, req *http.Request) string {
-	params := mux.Vars(req)
-	id := params[key]
-	return id
-}
-
-//	func CreateNewCustomer(writer http.ResponseWriter, req *http.Request) {
-//		// 1. set content-type to JSON
-//		writer.Header().Set("Content-Type", "application/json")
-//
-//		// 2. keep track of new entry so that it can be added to dictionary map
-//		var newEntry map[string]models.Customer
-//
-//		// 3. Read the request
-//		reqBody, _ := io.ReadAll(req.Body)
-//
-//		// 4. Parse JSON Body
-//		json.Unmarshal(reqBody, &newEntry)
-//
-//		// 5. Add new entry to dictionary map if it doesn't already exist
-//		for key, value := range newEntry {
-//			// - Respond with conflict if entry exists
-//			if _, ok := database[key]; ok {
-//				writer.WriteHeader(http.StatusConflict)
-//			} else {
-//				// - Respond with OK if entry does not exist
-//				database[key] = value
-//				writer.WriteHeader(http.StatusCreated)
-//			}
-//		}
-//
-//		// 6. Return updated dictionary
-//		json.NewEncoder(writer).Encode(database)
-//	}
-func DeleteCustomer(writer http.ResponseWriter, req *http.Request) {
-	id, database := extract("id", req), customer.GetAll()
-	if _, ok := database[id]; ok {
-		delete(database, id)
-		writeResponse(writer, database, http.StatusNoContent)
-		return
-	}
-	writeResponse(writer, database, http.StatusNotFound)
-}
-
-func UpdateCustomer(writer http.ResponseWriter, req *http.Request) {
-	id, database := extract("id", req), customer.GetAll()
-	// this works fine now, but i assume will have to be pulled from a db later and will need error handling
-	var newEntry models.Customer
-
-	// read the request body and handle error
-	// unmarshal the request body into newEntry and handle error
-	// check if the id exists in the database
-	// if it exists, update the entry and respond with status accepted
-	// if it doesn't exist, respond with status not found
-	if _, ok := database[id]; ok {
-		reqBody, _ := io.ReadAll(req.Body)
-		err := json.Unmarshal(reqBody, &newEntry)
-		if err != nil {
-			writeResponse(writer, newEntry, http.StatusUnprocessableEntity)
-			return
-		}
-		database[newEntry.ID] = newEntry
-		writeResponse(writer, database, http.StatusAccepted)
-		return
-	}
-	writeResponse(writer, database, http.StatusNotFound)
+func extractOne(key string, req *http.Request) string {
+	params := mux.Vars(req) // this only needs to run one time
+	value := params[key]
+	return value
 }
 
 // QUESTIONS:
-// 1. Why use unmarshal instead of decode?
-// 2. How do I handle the unmarshal error correctly?--nesting seems wrong
+// 1. Why use unmarshal instead of decode?  answer: For HTML, Decode is preferred, especially for large payloads, as it streams the data directly from the request body.
