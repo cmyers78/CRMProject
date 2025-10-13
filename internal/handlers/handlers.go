@@ -52,7 +52,7 @@ func CreateNewCustomer(writer http.ResponseWriter, req *http.Request) {
 	// 2. keep track of new entry so that it can be added to dictionary map
 	var newEntry models.Customer
 
-	err := json.NewDecoder(req.Body).Decode(&newEntry)
+	err := json.NewDecoder(req.Body).Decode(&newEntry) // this is doing a lot of work. read the body, decode it and then assign it to newEntry
 	if err != nil {
 		writeResponse(writer, newEntry, http.StatusUnprocessableEntity)
 		return
