@@ -14,17 +14,17 @@ type Customer struct {
 	Contacted bool   `json:"contacted"` // `json0'th value is false
 }
 
-var myVar string            //emptyString (0'th value)
-var myMap map[string]string // nil
-var myMap2 map[int]int      // nil
+//var myVar string            //emptyString (0'th value)
+//var myMap map[string]string // nil
+//var myMap2 map[int]int      // nil
 
 func (c Customer) Validate() error {
 	if strings.TrimSpace(c.Name) == "" {
-		return errors.New("Name is required and cannot be empty")
+		return errors.New("name is required and cannot be empty")
 	}
 
 	if strings.TrimSpace(c.Email) == "" && strings.TrimSpace(c.Phone) == "" {
-		return errors.New("Email or Phone Number is required and cannot be empty")
+		return errors.New("email or Phone Number is required and cannot be empty")
 	}
 	return nil
 }
