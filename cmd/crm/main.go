@@ -3,6 +3,7 @@ package main
 import (
 	"CRMBackendProject/internal/database"
 	"CRMBackendProject/internal/handlers"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -16,16 +17,17 @@ func main() {
 
 func StartServer() {
 	// Initialize database
-	if err := initializeDatabase(); err != nil {
+	db, err := initializeDatabase()
+	if err != nil {
 		log.Fatalf("failed to initialize database: %v", err)
 	}
-	defer database.CloseDB()
-
+	defer database.CloseDB(db)
+	h := handlers.NewHandlers(db)
 	router := mux.NewRouter()
 	router.HandleFunc("/", handlers.ShowHomePage)
 
-	router.HandleFunc("/customers", handlers.RetrieveAllCustomers).Methods("GET")
-	router.HandleFunc("/customers/{id}", handlers.RetrieveSingleCustomer).Methods("GET")
+	router.HandleFunc("/customers", h.RetrieveAllCustomers).Methods("GET")
+	router.HandleFunc("/customers/{id}", h.RetrieveSingleCustomer).Methods("GET")
 	router.HandleFunc("/customers", handlers.CreateNewCustomer).Methods("POST")
 	router.HandleFunc("/customers/{id}", handlers.DeleteCustomer).Methods("DELETE")
 	router.HandleFunc("/customers/{id}", handlers.UpdateCustomer).Methods("PUT")
@@ -33,17 +35,17 @@ func StartServer() {
 	http.ListenAndServe(":3000", router)
 }
 
-func initializeDatabase() error {
-	err := database.InitDB("crm.db")
+func initializeDatabase() (*sql.DB, error) {
+	db, err := database.InitDB("crm.db")
 	if err != nil {
-		return fmt.Errorf("failed to initialize database: %w", err)
+		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 
-	err = database.CreateTables()
+	err = database.CreateTables(db)
 	if err != nil {
-		return fmt.Errorf("failed to create tables: %w", err)
+		return nil, fmt.Errorf("failed to create tables: %w", err)
 	}
 
 	log.Println("Database initialized successfully")
-	return nil
+	return db, nil
 }

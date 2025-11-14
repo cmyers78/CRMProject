@@ -2,9 +2,11 @@ package customer
 
 import (
 	"CRMBackendProject/models"
+	"database/sql"
 	"fmt"
 	"sync"
 
+	"github.com/cmyers78/CRMBackendProject/internal/database"
 	"github.com/google/uuid"
 )
 
@@ -26,7 +28,7 @@ type SafeMap struct {
 
 // CRUD operations that will be used by Public functions in customer.go to manipulate the customer data
 func (s *SafeMap) getAll() map[string]models.Customer {
-	s.mu.RLock()         // multithreaded - read only, so multiple threads can read at the same time
+	s.mu.RLock()         // multi-threaded - read only, so multiple threads can read at the same time
 	defer s.mu.RUnlock() // unlock after function is done
 	return s.database    // returns a SafeMap database
 }
@@ -62,9 +64,13 @@ func GetDB() *SafeMap {
 // - Update modifies an existing customer's information
 // - Delete removes a customer from the database based on the provided ID
 
-func GetAll() map[string]models.Customer {
-	customers := customerdb.getAll()
-	return customers
+func GetAll(db *sql.DB) ([]models.Customer, error) {
+	customers, err := database.GetAllCustomers(db)
+	if err != nil {
+		return nil, err
+	}
+
+	return customers, nil
 }
 
 func Get(id string) (models.Customer, error) {

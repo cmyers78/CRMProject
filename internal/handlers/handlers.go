@@ -9,14 +9,17 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-
+	"database/sql"
 	"github.com/gorilla/mux"
 )
 
-// NOTE: - Handlers file should show handlers first
-var (
-	database = customer.GetDB()
-)
+type Handlers struct {
+	db *sql.DB
+}
+
+func NewHandlers(db *sql.DB) *Handlers {
+	return &Handlers{db: db}
+}
 
 func ShowHomePage(writer http.ResponseWriter, req *http.Request) {
 	path, err := os.Executable()
@@ -28,12 +31,16 @@ func ShowHomePage(writer http.ResponseWriter, req *http.Request) {
 	http.ServeFile(writer, req, staticPath)
 }
 
-func RetrieveAllCustomers(writer http.ResponseWriter, _ *http.Request) {
-	customers := customer.GetAll()
+func (h *Handlers) RetrieveAllCustomers(writer http.ResponseWriter, _ *http.Request) {
+	customers, err := customer.GetAll(h.db)
+	if err != nil {
+		writeResponse(writer, customers, http.StatusNoContent)
+		return
+	}
 	writeResponse(writer, customers, http.StatusOK)
 }
 
-func RetrieveSingleCustomer(writer http.ResponseWriter, req *http.Request) {
+func (h *Handlers) RetrieveSingleCustomer(writer http.ResponseWriter, req *http.Request) {
 	// Handler logic
 	id := extractOne("id", req)
 
@@ -92,7 +99,7 @@ func DeleteCustomer(writer http.ResponseWriter, req *http.Request) {
 	}
 
 	_ = customer.Delete(cst.ID)
-	writeResponse(writer, database, http.StatusOK)
+	writeResponse(writer, cst, http.StatusOK)
 }
 
 func UpdateCustomer(writer http.ResponseWriter, req *http.Request) {
@@ -108,7 +115,7 @@ func UpdateCustomer(writer http.ResponseWriter, req *http.Request) {
 		writeResponse(writer, newEntry, http.StatusBadRequest)
 		return
 	}
-	_, err = customer.Get(newEntry.ID)
+	cst, err := customer.Get(newEntry.ID)
 	if err != nil {
 		writeResponse(writer, newEntry.ID, http.StatusNotFound)
 		return
@@ -118,7 +125,7 @@ func UpdateCustomer(writer http.ResponseWriter, req *http.Request) {
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	writeResponse(writer, database, http.StatusAccepted)
+	writeResponse(writer, cst, http.StatusAccepted)
 }
 
 // NOTE: - Keep helpers at the bottom of the page

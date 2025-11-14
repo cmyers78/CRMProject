@@ -8,31 +8,29 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-var DB *sql.DB
-
-func InitDB(filepath string) error {
-	var err error
-	DB, err = sql.Open("sqlite3", filepath)
+// InitDB initializes and returns a connection to the SQLite database instead of a global variable
+func InitDB(filepath string) (*sql.DB, error) {
+	db, err := sql.Open("sqlite3", filepath)
 	if err != nil {
-		return fmt.Errorf("failed to open database: %w", err)
+		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	if err = DB.Ping(); err != nil {
-		return fmt.Errorf("failed to connect to database: %w", err)
+	if err = db.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	log.Printf("connected to SQLite database at %s", filepath)
-	return nil
+	return db, nil
 }
 
-func CloseDB() error {
-	if DB != nil {
-		return DB.Close()
+func CloseDB(db *sql.DB) error {
+	if db != nil {
+		return db.Close()
 	}
 	return nil
 }
 
-func CreateTables() error {
+func CreateTables(db *sql.DB) error {
 	createCustomerTable := `CREATE TABLE IF NOT EXISTS customers (
     	id TEXT PRIMARY KEY,
     	name TEXT NOT NULL,
@@ -41,7 +39,7 @@ func CreateTables() error {
     	phone TEXT NOT NULL,
     	contacted BOOLEAN NOT NULL DEFAULT FALSE
 	);`
-	_, err := DB.Exec(createCustomerTable)
+	_, err := db.Exec(createCustomerTable)
 	if err != nil {
 		return fmt.Errorf("failed to create customer table: %w", err)
 	}
