@@ -28,9 +28,9 @@ func StartServer() {
 
 	router.HandleFunc("/customers", h.RetrieveAllCustomers).Methods("GET")
 	router.HandleFunc("/customers/{id}", h.RetrieveSingleCustomer).Methods("GET")
-	router.HandleFunc("/customers", handlers.CreateNewCustomer).Methods("POST")
-	router.HandleFunc("/customers/{id}", handlers.DeleteCustomer).Methods("DELETE")
-	router.HandleFunc("/customers/{id}", handlers.UpdateCustomer).Methods("PUT")
+	router.HandleFunc("/customers", h.CreateNewCustomer).Methods("POST")
+	router.HandleFunc("/customers/{id}", h.DeleteCustomer).Methods("DELETE")
+	router.HandleFunc("/customers/{id}", h.UpdateCustomer).Methods("PUT")
 	fmt.Println("Server starting on port 3000")
 	http.ListenAndServe(":3000", router)
 }

@@ -2,8 +2,8 @@ package handlers
 
 // Business Logic and Handler currently
 import (
-	"CRMBackendProject/internal/customer"
 	"CRMBackendProject/models"
+	customer_db "CRMBackendProject/internal/database"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -32,7 +32,7 @@ func ShowHomePage(writer http.ResponseWriter, req *http.Request) {
 }
 
 func (h *Handlers) RetrieveAllCustomers(writer http.ResponseWriter, _ *http.Request) {
-	customers, err := customer.GetAll(h.db)
+	customers, err := customer_db.GetAllCustomers(h.db)
 	if err != nil {
 		writeResponse(writer, customers, http.StatusNoContent)
 		return
@@ -44,7 +44,7 @@ func (h *Handlers) RetrieveSingleCustomer(writer http.ResponseWriter, req *http.
 	// Handler logic
 	id := extractOne("id", req)
 
-	cst, err := customer.Get(id)
+	cst, err := customer_db.GetCustomer(id, h.db)
 	if err != nil {
 		writeResponse(writer, cst, http.StatusNotFound)
 		return
@@ -52,7 +52,7 @@ func (h *Handlers) RetrieveSingleCustomer(writer http.ResponseWriter, req *http.
 	writeResponse(writer, cst, http.StatusOK)
 }
 
-func CreateNewCustomer(writer http.ResponseWriter, req *http.Request) {
+func (h *Handlers) CreateNewCustomer(writer http.ResponseWriter, req *http.Request) {
 	// 1. set content-type to JSON
 	writer.Header().Set("Content-Type", "application/json")
 
@@ -72,7 +72,7 @@ func CreateNewCustomer(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 	// 5. Add new entry to dictionary map if it doesn't already exist
-	key, err := customer.Insert(newEntry)
+	key, err := customer_db.InsertCustomer(newEntry, h.db)
 	if err != nil {
 		fmt.Printf("Error: %s", err)
 		writer.WriteHeader(http.StatusBadRequest)
@@ -85,24 +85,24 @@ func CreateNewCustomer(writer http.ResponseWriter, req *http.Request) {
 	_ = json.NewEncoder(writer).Encode(newEntry)
 }
 
-func DeleteCustomer(writer http.ResponseWriter, req *http.Request) {
+func (h *Handlers) DeleteCustomer(writer http.ResponseWriter, req *http.Request) {
 	id := extractOne("id", req)
 	// NOTE: Validation of id
 	if id == "" {
 		writeResponse(writer, id, http.StatusBadRequest)
 		return
 	}
-	cst, err := customer.Get(id)
+	cst, err := customer_db.GetCustomer(id, h.db)
 	if err != nil {
 		writeResponse(writer, cst, http.StatusNotFound)
 		return
 	}
 
-	_ = customer.Delete(cst.ID)
+	_ = customer_db.DeleteCustomer(cst.ID, h.db)
 	writeResponse(writer, cst, http.StatusOK)
 }
 
-func UpdateCustomer(writer http.ResponseWriter, req *http.Request) {
+func (h *Handlers) UpdateCustomer(writer http.ResponseWriter, req *http.Request) {
 	// this works fine now, but I assume will have to be pulled from a db later and will need error handling
 	var newEntry models.Customer
 	err := json.NewDecoder(req.Body).Decode(&newEntry)
@@ -115,12 +115,12 @@ func UpdateCustomer(writer http.ResponseWriter, req *http.Request) {
 		writeResponse(writer, newEntry, http.StatusBadRequest)
 		return
 	}
-	cst, err := customer.Get(newEntry.ID)
+	cst, err := customer_db.GetCustomer(newEntry.ID, h.db)
 	if err != nil {
 		writeResponse(writer, newEntry.ID, http.StatusNotFound)
 		return
 	}
-	err = customer.Update(newEntry)
+	err = customer_db.UpdateCustomer(newEntry, h.db)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 		return
