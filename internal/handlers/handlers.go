@@ -3,7 +3,7 @@ package handlers
 // Business Logic and Handler currently
 import (
 	"CRMBackendProject/models"
-	customer_db "CRMBackendProject/internal/database"
+	"CRMBackendProject/internal/database"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -32,7 +32,7 @@ func ShowHomePage(writer http.ResponseWriter, req *http.Request) {
 }
 
 func (h *Handlers) RetrieveAllCustomers(writer http.ResponseWriter, _ *http.Request) {
-	customers, err := customer_db.GetAllCustomers(h.db)
+	customers, err := database.GetAllCustomers(h.db)
 	if err != nil {
 		writeResponse(writer, customers, http.StatusNoContent)
 		return
@@ -44,7 +44,7 @@ func (h *Handlers) RetrieveSingleCustomer(writer http.ResponseWriter, req *http.
 	// Handler logic
 	id := extractOne("id", req)
 
-	cst, err := customer_db.GetCustomer(id, h.db)
+	cst, err := database.GetCustomer(id, h.db)
 	if err != nil {
 		writeResponse(writer, cst, http.StatusNotFound)
 		return
@@ -72,7 +72,7 @@ func (h *Handlers) CreateNewCustomer(writer http.ResponseWriter, req *http.Reque
 		return
 	}
 	// 5. Add new entry to dictionary map if it doesn't already exist
-	key, err := customer_db.InsertCustomer(newEntry, h.db)
+	key, err := database.InsertCustomer(newEntry, h.db)
 	if err != nil {
 		fmt.Printf("Error: %s", err)
 		writer.WriteHeader(http.StatusBadRequest)
@@ -92,13 +92,13 @@ func (h *Handlers) DeleteCustomer(writer http.ResponseWriter, req *http.Request)
 		writeResponse(writer, id, http.StatusBadRequest)
 		return
 	}
-	cst, err := customer_db.GetCustomer(id, h.db)
+	cst, err := database.GetCustomer(id, h.db)
 	if err != nil {
 		writeResponse(writer, cst, http.StatusNotFound)
 		return
 	}
 
-	_ = customer_db.DeleteCustomer(cst.ID, h.db)
+	_ = database.DeleteCustomer(cst.ID, h.db)
 	writeResponse(writer, cst, http.StatusOK)
 }
 
@@ -115,12 +115,12 @@ func (h *Handlers) UpdateCustomer(writer http.ResponseWriter, req *http.Request)
 		writeResponse(writer, newEntry, http.StatusBadRequest)
 		return
 	}
-	cst, err := customer_db.GetCustomer(newEntry.ID, h.db)
+	cst, err := database.GetCustomer(newEntry.ID, h.db)
 	if err != nil {
 		writeResponse(writer, newEntry.ID, http.StatusNotFound)
 		return
 	}
-	err = customer_db.UpdateCustomer(newEntry, h.db)
+	err = database.UpdateCustomer(newEntry, h.db)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 		return

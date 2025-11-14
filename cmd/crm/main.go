@@ -24,7 +24,10 @@ func StartServer() {
 	defer database.CloseDB(db)
 	h := handlers.NewHandlers(db)
 	router := mux.NewRouter()
-	router.HandleFunc("/", handlers.ShowHomePage)
+	router.HandleFunc("/", handlers.ShowHomePage) 	// I know we don't have to put this 
+													// as part of the handlers struct, 
+													// but should we to maintain consistency?
+
 
 	router.HandleFunc("/customers", h.RetrieveAllCustomers).Methods("GET")
 	router.HandleFunc("/customers/{id}", h.RetrieveSingleCustomer).Methods("GET")

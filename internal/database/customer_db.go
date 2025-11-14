@@ -38,8 +38,8 @@ func GetAllCustomers(db *sql.DB) ([]models.Customer, error) {
 
 func GetCustomer(id string, db *sql.DB) (models.Customer,
 	error) {
-	query := "SELECT id, name, role, email, phone,contacted FROM customers WHERE id = ?"
-	row := db.QueryRow(query, id)
+	const queryStatement = "SELECT id, name, role, email, phone,contacted FROM customers WHERE id = ?"
+	row := db.QueryRow(queryStatement, id)
 
 	var c models.Customer
 	err := row.Scan(&c.ID, &c.Name, &c.Role,
@@ -56,9 +56,9 @@ func GetCustomer(id string, db *sql.DB) (models.Customer,
 func InsertCustomer(c models.Customer, db *sql.DB) (string,
 	error) {
 	id := uuid.New().String()
-	query := "INSERT INTO customers (id, name, role,email, phone, contacted) VALUES (?, ?, ?, ?, ?,?)"
+	const queryStatement = "INSERT INTO customers (id, name, role,email, phone, contacted) VALUES (?, ?, ?, ?, ?,?)"
 
-	_, err := db.Exec(query, id, c.Name, c.Role, c.Email, c.Phone, c.Contacted)
+	_, err := db.Exec(queryStatement, id, c.Name, c.Role, c.Email, c.Phone, c.Contacted)
 	if err != nil {
 		return "", fmt.Errorf("failed to insert customer: %w", err)
 	}
@@ -66,9 +66,9 @@ func InsertCustomer(c models.Customer, db *sql.DB) (string,
 }
 
 func UpdateCustomer(c models.Customer, db *sql.DB) error {
-	query := "UPDATE customers SET name = ?, role =?, email = ?, phone = ?, contacted = ? WHERE id= ?"
+	const queryStatement = "UPDATE customers SET name = ?, role =?, email = ?, phone = ?, contacted = ? WHERE id= ?"
 
-	_, err := db.Exec(query, c.Name, c.Role,
+	_, err := db.Exec(queryStatement, c.Name, c.Role,
 		c.Email, c.Phone, c.Contacted, c.ID)
 	if err != nil {
 		return fmt.Errorf("failed to update customer: %w", err)
@@ -77,9 +77,9 @@ func UpdateCustomer(c models.Customer, db *sql.DB) error {
 }
 
 func DeleteCustomer(id string, db *sql.DB) error {
-	query := "DELETE FROM customers WHERE id = ?"
+	const queryStatement = "DELETE FROM customers WHERE id = ?"
 
-	_, err := db.Exec(query, id)
+	_, err := db.Exec(queryStatement, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete customer: %w", err)
 	}
