@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gorilla/mux"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -15,7 +16,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 	// Create an in-memory database (exists only during test)
 	db, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
-		t.Fatalf("Failed to open test database: %w", err)
+		t.Fatalf("Failed to open test database: %v", err)
 	}
 
 	// Create the customers table
@@ -31,7 +32,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 
 	_, err = db.Exec(createTableSQL)
 	if err != nil {
-		t.Fatalf("Failed to create customers table: %w", err)
+		t.Fatalf("Failed to create customers table: %v", err)
 	}
 	return db
 }
@@ -78,7 +79,44 @@ func TestRetrieveAllCustomers(t *testing.T) {
 		t.Errorf("Expected 'John Doe', got '%s'", customers[0].Name)
 	}
 
-	if customers[1].Role != "Manaager" {
+	if customers[1].Role != "Manager" {
 		t.Errorf("Expected 'Manager', got '%s'", customers[1].Role)
+	}
+}
+
+func TestRetrieveOneCustomer(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	insertSQL := `INSERT INTO customers (id, name, role, email, phone, contacted)
+	              VALUES (?, ?, ?, ?, ?, ?)`
+
+	db.Exec(insertSQL, "1", "John Doe", "Developer", "john@example.com", "555-0001", false)
+
+	// 3. Create your handler with the test database
+	h := NewHandlers(db)
+
+	// 4. Create a fake HTTP GET request
+	req := httptest.NewRequest("GET", "/customers/1", nil)
+	req = mux.SetURLVars(req, map[string]string{"id": "1"})
+
+	// 5. Create a recorder to capture the response
+	rr := httptest.NewRecorder()
+
+	// 6. Call your handler (this is where it runs!)
+	h.RetrieveSingleCustomer(rr, req)
+
+	// 7. Check the HTTP status code
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", rr.Code)
+	}
+
+	// 8. Parse the JSON response
+	var customer models.Customer
+	json.NewDecoder(rr.Body).Decode(&customer)
+
+	// 10. Check the data is correct
+	if customer.Name != "John Doe" {
+		t.Errorf("Expected 'John Doe', got '%s'", customer.Name)
 	}
 }
