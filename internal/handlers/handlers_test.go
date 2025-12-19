@@ -120,3 +120,43 @@ func TestRetrieveOneCustomer(t *testing.T) {
 		t.Errorf("Expected 'John Doe', got '%s'", customer.Name)
 	}
 }
+
+func TestDeleteCustomer(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	insertSQL := `INSERT INTO customers (id, name, role, email, phone, contacted)
+	              VALUES (?, ?, ?, ?, ?, ?)`
+
+	db.Exec(insertSQL, "1", "John Doe", "Developer", "john@example.com", "555-0001", false)
+
+	// 3. Create your handler with the test database
+	h := NewHandlers(db)
+
+	req := httptest.NewRequest("DELETE", "/customers/1", nil)
+	req = mux.SetURLVars(req, map[string]string{"id": "1"})
+
+	rr := httptest.NewRecorder()
+	h.DeleteCustomer(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", rr.Code)
+	}
+
+	// Parse the JSON response (should return the deleted customer)
+	var deletedCustomer models.Customer
+	json.NewDecoder(rr.Body).Decode(&deletedCustomer)
+
+	// Verify the response contains the customer that was deleted
+	if deletedCustomer.Name != "John Doe" {
+		t.Errorf("Expected deleted customer name 'John Doe', got '%s'", deletedCustomer.Name)
+	}
+
+	// Verify the customer is actually deleted from the database
+	var count int
+	db.QueryRow("SELECT COUNT(*) FROM customers WHERE id = ?", "1").Scan(&count)
+
+	if count != 0 {
+		t.Errorf("Expected customer to be deleted, but it still exists")
+	}
+}
