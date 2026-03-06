@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"CRMBackendProject/models"
 	"database/sql"
 	"encoding/json"
@@ -158,5 +159,124 @@ func TestDeleteCustomer(t *testing.T) {
 
 	if count != 0 {
 		t.Errorf("Expected customer to be deleted, but it still exists")
+	}
+}
+
+func TestCreateNewCustomer(t *testing.T) {
+    db := setupTestDB(t)
+    defer db.Close()
+
+    h := NewHandlers(db)
+
+    // Create the customer data to send
+    newCustomer := models.Customer{
+        Name:  "Jane Doe",
+        Role:  "Tester",
+        Email: "jane@example.com",
+        Phone: "555-9999",
+    }
+
+    // Convert to JSON
+    jsonData, _ := json.Marshal(newCustomer)
+
+    // Create POST request with JSON body
+    req := httptest.NewRequest("POST", "/customers", bytes.NewBuffer(jsonData))
+    rr := httptest.NewRecorder()
+
+    h.CreateNewCustomer(rr, req)
+
+    // Check status is 201 Created
+    if rr.Code != http.StatusCreated {
+        t.Errorf("Expected status 201, got %d", rr.Code)
+    }
+
+    // Parse response
+    var createdCustomer models.Customer
+    json.NewDecoder(rr.Body).Decode(&createdCustomer)
+
+    // Verify it has an ID
+    if createdCustomer.ID == "" {
+        t.Errorf("Expected customer to have an ID, got empty string")
+    }
+
+    // Verify name matches
+    if createdCustomer.Name != "Jane Doe" {
+        t.Errorf("Expected name 'Jane Doe', got '%s'", createdCustomer.Name)
+    }
+
+    // Query database to verify it was actually inserted
+	var dbCustomer models.Customer
+
+	row := db.QueryRow("SELECT id, name, role, email, phone, contacted FROM customers WHERE id = ?", createdCustomer.ID)
+	err := row.Scan(&dbCustomer.ID, &dbCustomer.Name, &dbCustomer.Role, &dbCustomer.Email, &dbCustomer.Phone, &dbCustomer.Contacted)
+
+	if err != nil {
+		t.Errorf("Customer was not inserted into database: %v", err)
+	}
+	
+	if dbCustomer.Name != "Jane Doe" {
+    	t.Errorf("Database customer name mismatch: expected 'Jane Doe', got '%s'", dbCustomer.Name)
+	}
+	if dbCustomer.Role != "Tester" {
+    	t.Errorf("Database customer role mismatch: expected 'Manager', got '%s'", dbCustomer.Role)
+	}
+}
+
+func TestUpdateCustomer(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	h := NewHandlers(db)
+
+	initialCustomer := models.Customer{
+    Name:      "Old Name",
+    Role:      "Old Role",
+    Email:     "old@example.com",
+    Phone:     "111-1111",
+    Contacted: false,
+	}
+	customerJSON, _ := json.Marshal(initialCustomer)
+	req := httptest.NewRequest(http.MethodPost, "/customers", bytes.NewBuffer(customerJSON))
+	rr := httptest.NewRecorder()
+	h.CreateNewCustomer(rr, req)
+
+	var createdCustomer models.Customer
+	json.NewDecoder(rr.Body).Decode(&createdCustomer)
+
+	updatedCustomer := models.Customer {
+		ID: createdCustomer.ID,
+		Name: "New Name",
+		Role: "New Role",
+		Email: "new@example.com",
+		Phone: "222-2222",
+		Contacted: true,
+	}
+
+	updateJson, _ := json.Marshal(updatedCustomer)
+	updateReq := httptest.NewRequest(http.MethodPut, "/customers" + updatedCustomer.ID, bytes.NewBuffer(updateJson))
+	updateRR := httptest.NewRecorder()
+	h.UpdateCustomer(updateRR, updateReq)
+
+	if updateRR.Code != http.StatusAccepted {
+		t.Errorf("Expected status 202, got %d", updateRR.Code)
+	}
+
+	var dbCustomer models.Customer
+	row := db.QueryRow("SELECT id, name, role, email, phone, contacted FROM customers WHERE id = ?", createdCustomer.ID)
+	err := row.Scan(&dbCustomer.ID, &dbCustomer.Name, &dbCustomer.Role, &dbCustomer.Email, &dbCustomer.Phone, &dbCustomer.Contacted)
+	if err != nil {
+    	t.Errorf("Could not find customer in database: %v", err)
+	}
+
+	if dbCustomer.Name != "New Name" {
+    	t.Errorf("Expected name 'New Name', got '%s'", dbCustomer.Name)
+	}
+	if dbCustomer.Role != "New Role" {
+    	t.Errorf("Expected role 'New Role', got '%s'", dbCustomer.Role)
+	}
+	if dbCustomer.Email != "new@example.com" {
+    	t.Errorf("Expected email 'new@example.com', got '%s'", dbCustomer.Email)
+	}
+	if !dbCustomer.Contacted {
+    	t.Errorf("Expected Contacted to be true")
 	}
 }
